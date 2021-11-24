@@ -1,5 +1,17 @@
-import Data.Char
 
+module BigNumber
+  ( BigNumber, -- exportar o tipo
+    scanner,
+    output,
+    somaBN, -- e as operações
+    subBN,
+    mulBN,
+    divBN, 
+    isEqual
+  )
+where
+
+import Data.Char
 type BigNumber = [Int]
 
 --the first number of any BigNumber symbolizes its signal 0- positive 1-negative
@@ -18,13 +30,14 @@ inverso x
 valorAbsoluto :: BigNumber -> BigNumber
 valorAbsoluto x = [0] ++ drop 1 x
 
+--
 zeroUntil :: [Int] -> [Int]
 zeroUntil [] = []
 zeroUntil [0] = [0]
 zeroUntil (0 : xs) = zeroUntil xs
 zeroUntil (x : xs)
-  | x > 0 = x : xs -- ← end of recursion, return the list
-  | otherwise = x : zeroUntil xs -- ← yield x and recurse
+  | x > 0 = x : xs 
+  | otherwise = x : zeroUntil xs 
 
 isBigger :: BigNumber -> BigNumber -> Bool
 isBigger [] [] = False
@@ -125,3 +138,8 @@ divBN x y = (signal_quotient ++ head results_without_sign, signal_remainder ++ l
       | head x == head y = [0]
       | otherwise = [1]
     signal_remainder = take 1 x
+
+safeDivBN :: BigNumber -> BigNumber -> Maybe (BigNumber, BigNumber)
+safeDivBN x y 
+   | isEqual y [0,0] || isEqual y [1,0] = Nothing
+   | otherwise = Just (divBN x y)
