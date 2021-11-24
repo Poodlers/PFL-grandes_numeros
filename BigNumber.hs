@@ -1,4 +1,3 @@
-
 module BigNumber
   ( BigNumber, -- exportar o tipo
     scanner,
@@ -6,12 +5,13 @@ module BigNumber
     somaBN, -- e as operações
     subBN,
     mulBN,
-    divBN, 
-    isEqual
+    divBN,
+    isEqual,
   )
 where
 
 import Data.Char
+
 type BigNumber = [Int]
 
 --the first number of any BigNumber symbolizes its signal 0- positive 1-negative
@@ -36,8 +36,8 @@ zeroUntil [] = []
 zeroUntil [0] = [0]
 zeroUntil (0 : xs) = zeroUntil xs
 zeroUntil (x : xs)
-  | x > 0 = x : xs 
-  | otherwise = x : zeroUntil xs 
+  | x > 0 = x : xs
+  | otherwise = x : zeroUntil xs
 
 isBigger :: BigNumber -> BigNumber -> Bool
 isBigger [] [] = False
@@ -56,36 +56,36 @@ isEqual (x : xs) (y : ys)
   | x /= y = False
   | otherwise = isEqual xs ys
 
-somaAux :: BigNumber -> BigNumber -> BigNumber
-somaAux [] [] = []
-somaAux (x : xs) (y : ys)
-  | x + y >= 10 = [(x + y) `mod` 10] ++ somaAux xs_mod ys
-  | otherwise = [(x + y) `mod` 10] ++ somaAux xs ys
-  where
-    xs_mod = [head xs + 1] ++ drop 1 xs
+-- must be called such that x > y
+somaAux :: Int -> BigNumber -> BigNumber -> BigNumber
+somaAux 0 [] [] = []
+somaAux carry [] [] = [carry]
+somaAux carry (x : xs) [] = [(x + carry) `mod` 10] ++ somaAux ((x + carry) `div` 10) xs []
+somaAux carry (x : xs) (y : ys) = [(x + y + carry) `mod` 10] ++ somaAux ((x + y + carry) `div` 10) xs ys
 
 somaBN :: BigNumber -> BigNumber -> BigNumber
 somaBN x y
-  | head x == head y = signal ++ zeroUntil (reverse (somaAux (reverse bigger_list) (reverse smaller_list)))
-  | otherwise = signal ++ zeroUntil (reverse (subAux (reverse bigger_list) (reverse smaller_list)))
+  | head x == head y = signal ++ zeroUntil (reverse (somaAux 0 (reverse bigger_list) (reverse smaller_list)))
+  | otherwise = signal ++ zeroUntil (reverse (subAux 0 (reverse bigger_list) (reverse smaller_list)))
   where
     bigger_list
-      | isBigger (drop 1 x) (drop 1 y) = replicate ((max (length y - length x) 0) + 1) 0 ++ drop 1 x --removing the signal here
-      | otherwise = replicate ((max (length x - length y) 0) + 1) 0 ++ drop 1 y
+      | isBigger (drop 1 x) (drop 1 y) = drop 1 x --removing the signal here
+      | otherwise = drop 1 y
     smaller_list
-      | isBigger (drop 1 x) (drop 1 y) = replicate ((max (length x - length y) 0) + 1) 0 ++ drop 1 y --removing the signal here
-      | otherwise = replicate ((max (length y - length x) 0) + 1) 0 ++ drop 1 x
+      | isBigger (drop 1 x) (drop 1 y) = drop 1 y --removing the signal here
+      | otherwise = drop 1 x
     signal
       | isBigger (drop 1 x) (drop 1 y) = take 1 x
       | otherwise = take 1 y
 
-subAux :: BigNumber -> BigNumber -> BigNumber
-subAux [] [] = []
-subAux (x : xs) (y : ys)
-  | x - y < 0 = [(x - y) + 10] ++ subAux xs_mod ys
-  | otherwise = [(x - y)] ++ subAux xs ys
-  where
-    xs_mod = [head xs - 1] ++ drop 1 xs
+subAux :: Int -> BigNumber -> BigNumber -> BigNumber
+subAux carry [] [] = []
+subAux carry (x : xs) []
+  | x + carry < 0 = [(x + carry) + 10] ++ subAux (-1) xs []
+  | otherwise = [(x + carry)] ++ subAux 0 xs []
+subAux carry (x : xs) (y : ys)
+  | x - y + carry < 0 = [(x - y + carry) + 10] ++ subAux (-1) xs ys
+  | otherwise = [(x - y + carry)] ++ subAux 0 xs ys
 
 subBN :: BigNumber -> BigNumber -> BigNumber
 subBN x y = somaBN x (inverso y)
@@ -112,6 +112,7 @@ mulBN x y = signal ++ drop 1 (somaRec (mulFatores 0 (reverse x_no_signal) y_no_s
       | head x == head y = [0]
       | otherwise = [1]
 
+--returns list with two BigNumbers [remainder, quociente]
 bigNumberDiv :: BigNumber -> BigNumber -> BigNumber -> [BigNumber]
 bigNumberDiv try x y
   | isBigger (drop 1 (mulBN y try)) (drop 1 x) = [subBN try [0, 1], subBN x (mulBN y (subBN try [0, 1]))]
@@ -120,26 +121,29 @@ bigNumberDiv try x y
 accumulateUntilBiggerOrEqual :: Int -> BigNumber -> BigNumber -> BigNumber
 accumulateUntilBiggerOrEqual acc x y
   | isBigger (take acc x) y || isEqual (take acc x) y = take acc x
+  | acc == length x = x
   | otherwise = accumulateUntilBiggerOrEqual (acc + 1) x y
 
-divAux :: BigNumber -> BigNumber -> [Int] -> [BigNumber]
+divAux :: BigNumber -> BigNumber -> [Int] -> [[Int]]
 divAux x y final
-  | isBigger y x = [final, drop 1 x]
-  | otherwise = divAux (last partial_results ++ drop (length partial_quo) x) y (final ++ drop 1 (head partial_results))
+  | isBigger y x = [final, x]
+  | otherwise = divAux (last partial_results ++ drop (length partial_quo) x) y (final ++ head partial_results)
   where
-    partial_results = bigNumberDiv [1, 0] partial_quo y
+    partial_results = map (drop 1) (bigNumberDiv [1, 0] ([0] ++ partial_quo) ([0] ++ y)) --remove the signal on these operations
     partial_quo = accumulateUntilBiggerOrEqual 1 x y
 
 divBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber)
 divBN x y = (signal_quotient ++ head results_without_sign, signal_remainder ++ last results_without_sign)
   where
-    results_without_sign = divAux (valorAbsoluto x) (valorAbsoluto y) []
+    results_without_sign = divAux x_no_signal y_no_signal []
     signal_quotient
       | head x == head y = [0]
       | otherwise = [1]
     signal_remainder = take 1 x
+    x_no_signal = drop 1 x
+    y_no_signal = drop 1 y
 
 safeDivBN :: BigNumber -> BigNumber -> Maybe (BigNumber, BigNumber)
-safeDivBN x y 
-   | isEqual y [0,0] || isEqual y [1,0] = Nothing
-   | otherwise = Just (divBN x y)
+safeDivBN x y
+  | isEqual y [0, 0] || isEqual y [1, 0] = Nothing
+  | otherwise = Just (divBN x y)
