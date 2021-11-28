@@ -6,14 +6,16 @@ fibRec n | n<2 = n
         | otherwise = fibRec (n-2) + fibRec (n-1)
 
 fibLista :: (Integral a) => a -> a
-fibLista n = fibo !! fromIntegral n 
-        where fibo = 0 : 1 : [fibo!! fromIntegral (i-1) + fibo !! fromIntegral (i-2) | i<-[2..n]]
+fibLista n = last fibo  
+        where fibo = 0 : 1 : [fibo!! fromIntegral (i-2) + fibo !! fromIntegral (i-1) | i<-[2..n]]
+
 
 fibListaInfinita :: (Integral a) => a -> a
 fibListaInfinita n = fibs !! fromIntegral n 
         where fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
 
 fibRecBN :: BigNumber-> BigNumber
+fibRecBN [0, 0] = [0 , 0]
 fibRecBN [1, 0] = [0 , 0]
 fibRecBN [0, 1]= [0, 1]
 fibRecBN n = somaBN (fibRecBN ( subBN n [0,2])) (fibRecBN (subBN n [0,1]))
@@ -25,5 +27,5 @@ fibListaBN n = enesimo fibo n
 
 fibListaInfinitaBN :: BigNumber -> BigNumber
 fibListaInfinitaBN n = enesimo fibs n 
-        where fibs = [0,0] : [0,1] : zipWith (somaBN) fibs (tail fibs)
+        where fibs = [0,0] : [0,1] : zipWith somaBN fibs (tail fibs)
 

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module BigNumber
   ( BigNumber, -- exportar o tipo
     scanner,
@@ -10,17 +11,21 @@ module BigNumber
   )
 where
 
-import Data.Char
+import Data.Char ( digitToInt, intToDigit )
 
 type BigNumber = [Int]
 
 --the first number of any BigNumber symbolizes its signal 0- positive 1-negative
 
 scanner :: String -> BigNumber
-scanner arg = [digitToInt x | x <- arg]
+scanner (s:xs) |  s == '-' = 1 : [digitToInt x | x <- xs]
+              | s == '+' = 0 : [digitToInt x | x <- xs]
+              | otherwise = 0 : digitToInt s : [digitToInt x | x <- xs]
 
 output :: BigNumber -> String
-output arg = [intToDigit x | x <- arg]
+output (s:xs) | xs == [0] = "0"
+            | s== 0  = '+' :  [intToDigit x | x <- xs]
+            | otherwise = '-' :  [intToDigit x | x <- xs]
 
 inverso :: BigNumber -> BigNumber
 inverso x
